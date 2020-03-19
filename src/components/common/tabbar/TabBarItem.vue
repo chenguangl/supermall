@@ -20,16 +20,20 @@ export default {
     return {
     }
   },
+  // computed是属性,调用的时候不需要加小括号,有缓存
   computed: {
     isActive() {
+      // $route,表示当前激活的路由的状态信息
       return this.$route.path.indexOf(this.path) !== -1;
     },
     activeStyle() {
       return this.isActive? {color: this.activeColor}: {};
     }    
   },
+  // methods是方法,会重复调用
   methods: {
     itemClick() {
+      // 表示当前激活的路由的状态信息,push方法的跳转会向 history 栈添加一个新的记录
       this.$router.push(this.path).catch(err => {err});
     }
   },

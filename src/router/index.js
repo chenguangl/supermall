@@ -5,6 +5,7 @@ import Category from 'views/category/Category.vue'
 import Cart from 'views/cart/Cart.vue'
 import Profile from 'views/profile/Profile.vue'
 
+// 全局注册路由
 Vue.use(Router)
 
 const routes = [
