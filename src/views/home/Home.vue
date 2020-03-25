@@ -3,14 +3,16 @@
     <nav-bar class="home-navbar">
       <div slot="center">购物车</div>
     </nav-bar>
-    <scroll class="content"  ref="scroll">
-      <home-swiper :banner="banner"></home-swiper>
+    <tab-control :titles = "titles" class="tab-control tabfix" @tabClick="tabClick" ref="tabcontrol2" v-show="isTabFixed"/>
+
+    <scroll class="content"  ref="scroll" @contentScroll="contentScroll" :probe-type="3" :pull-up-load="true" @pullingUp="loadMore">
+      <home-swiper :banner="banner" @swiperImageLoad="swiperImageLoad"></home-swiper>
       <recommend-items :recommend="recommend"></recommend-items>
       <feature-view />
-      <tab-control :titles = "titles" class="tab-control" @tabClick="tabClick"/>
+      <tab-control :titles = "titles" class="tab-control" @tabClick="tabClick" ref="tabcontrol1"/>
       <list-view :data="getGoods"/>
     </scroll>
-    <back-top @click.native="backTop"/>
+    <back-top @click.native="backTop" v-show="isShown"/>
   </div>
 </template>
 
@@ -26,6 +28,7 @@ import Scroll from 'components/common/bscroll/Scroll'
 import BackTop from 'components/common/backtop/BackTop'
 
 import {getHomeMultidata, getHomeGoods} from 'network/home'
+import {debounce} from 'common/utils'
 export default {
   name: 'Home',
   components: {
@@ -48,7 +51,11 @@ export default {
         'new': {page:0, list:[]},
         'sell': {page:0, list:[]},
       },
-      currentType: 'pop'
+      currentType: 'pop',
+      isShown: false,
+      offsetTop: 0,
+      isTabFixed: false,
+      saveY: 0
     }
   },
   created () {
@@ -56,11 +63,27 @@ export default {
    this.getHomeGoods('pop');
    this.getHomeGoods('new');
    this.getHomeGoods('sell');
+
+  
+  },
+  mounted () {
+    const refresh = debounce(this.$refs.scroll.refresh, 200);
+    this.$bus.$on('itemImageLoad', () => {
+       refresh();
+    })
   },
   computed: {
     getGoods() {
       return this.goods[this.currentType].list;
     }
+  },
+  activated () {
+    this.$refs.scroll.scrollTo(0, this.saveY, 0);
+    this.$refs.scroll.refresh();
+  },
+  deactivated () {
+    this.saveY = this.$refs.scroll.getScrollY();
+    
   },
 
   methods: {
@@ -77,11 +100,22 @@ export default {
           this.currentType = 'sell';
           break;
       }
+      this.$refs.tabcontrol1.currentIndex = index;
+      this.$refs.tabcontrol2.currentIndex = index;
     },
     backTop() {
       this.$refs.scroll.scrollTo(0, 0);
     },
-
+    contentScroll(position) {
+      this.isShown = (-position.y) > 1000;
+      this.isTabFixed = (-position.y) > this.offsetTop;
+    },
+    loadMore() {
+      this.getHomeGoods(this.currentType);
+    },
+    swiperImageLoad() {
+      this.offsetTop = this.$refs.tabcontrol1.$el.offsetTop;
+    },
     // 网络请求的方法
     getHomeMultidata() {
       getHomeMultidata().then(res => {
@@ -95,8 +129,10 @@ export default {
         // 把res.data.list数组解构push到goods里面
         this.goods[type].list.push(...res.data.list);
         this.goods[type].page++;
+        this.$refs.scroll.finishPullUp();
       })
-    }
+    },
+
   }
 }
 </script>
@@ -105,23 +141,13 @@ export default {
   #home {
     position: relative;
     height: 100vh;
-    padding-top: 44px;
+    /* padding-top: 44px; */
   }
 
   .home-navbar {
-    position: fixed;
     background-color: var(--color-tint);
     color: #fff;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 5;
-  }
-
-  .tab-control {
-    position: sticky;
-    top: 44px;
-    z-index: 5;
+    
   }
 
   .content {
@@ -131,5 +157,10 @@ export default {
     bottom: 49px;
     left: 0;
     right: 0;
+  }
+
+  .tabfix {
+    position: relative;
+    z-index: 5;
   }
 </style>
