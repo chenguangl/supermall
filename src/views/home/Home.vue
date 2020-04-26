@@ -25,10 +25,9 @@ import NavBar from 'components/common/navbar/NavBar'
 import TabControl from 'components/content/tabcontrol/TabControl'
 import ListView from 'components/content/listview/ListView'
 import Scroll from 'components/common/bscroll/Scroll'
-import BackTop from 'components/common/backtop/BackTop'
 
 import {getHomeMultidata, getHomeGoods} from 'network/home'
-import {debounce} from 'common/utils'
+import {itemImageListener, backTopMixin} from 'common/mixin'
 export default {
   name: 'Home',
   components: {
@@ -39,8 +38,9 @@ export default {
     NavBar,
     ListView,
     Scroll,
-    BackTop
+    
   },
+  mixins: [itemImageListener, backTopMixin],
   data() {
     return{
       banner: [],
@@ -52,10 +52,10 @@ export default {
         'sell': {page:0, list:[]},
       },
       currentType: 'pop',
-      isShown: false,
       offsetTop: 0,
       isTabFixed: false,
-      saveY: 0
+      saveY: 0,
+      
     }
   },
   created () {
@@ -67,10 +67,7 @@ export default {
   
   },
   mounted () {
-    const refresh = debounce(this.$refs.scroll.refresh, 200);
-    this.$bus.$on('itemImageLoad', () => {
-       refresh();
-    })
+   
   },
   computed: {
     getGoods() {
@@ -83,7 +80,7 @@ export default {
   },
   deactivated () {
     this.saveY = this.$refs.scroll.getScrollY();
-    
+    this.$bus.$off('itemImageLoad', this.itemImageListener);
   },
 
   methods: {
@@ -103,9 +100,7 @@ export default {
       this.$refs.tabcontrol1.currentIndex = index;
       this.$refs.tabcontrol2.currentIndex = index;
     },
-    backTop() {
-      this.$refs.scroll.scrollTo(0, 0);
-    },
+   
     contentScroll(position) {
       this.isShown = (-position.y) > 1000;
       this.isTabFixed = (-position.y) > this.offsetTop;
